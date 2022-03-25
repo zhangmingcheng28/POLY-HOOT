@@ -1,3 +1,4 @@
+import time
 from math import log, sqrt
 import copy
 import gym
@@ -5,13 +6,13 @@ from SnapshotENV import SnapshotEnv
 import pickle
 import os
 import numpy as np
-from poly_hoo import POLY_HOO
+from POLY_HOO import POLY_HOO
 import random
 
 
 
-envname = 'Continuous-CartPole-v0'
-# envname = 'Pendulum-v0'
+#envname = 'Continuous-CartPole-v0'
+envname = 'Pendulum-v1'
 # envname = 'LunarLanderContinuous-v2'
 
 filename = 'POLY_HOOT_' + envname + '.txt'
@@ -20,7 +21,7 @@ KEY_DECIMAL = 4
 MAX_MCTS_DEPTH = 50
 if envname == 'LunarLanderContinuous-v2':
 	MAX_MCTS_DEPTH = 100
-ITERATIONS = 100
+ITERATIONS = 150
 TEST_ITERATIONS = 150
 HOO_LIMIT_DEPTH = 10
 discount = 0.99
@@ -35,7 +36,7 @@ if envname == 'Continuous-CartPole-v0':
 	min_action = env.min_action
 	max_action = env.max_action
 	dim = 1
-elif envname == 'Pendulum-v0':
+elif envname == 'Pendulum-v1':
 	min_action = -2.0
 	max_action = 2.0
 	dim = 1
@@ -101,7 +102,8 @@ base = 333.3333 ** (1.0 / 15.0)
 samples = [int(3* (base ** i)) for i in range(16)]
 
 if __name__ == '__main__':
-	for ITERATIONS in samples[0:6]:
+	#for ITERATIONS in [100, 250]:
+	for k in range(1):
 		root_obs = copy.copy(root_obs_ori)
 		root_snapshot = copy.copy(root_snapshot_ori)
 		root = Node(root_snapshot, root_obs, False, None, 0, dim)
@@ -110,9 +112,10 @@ if __name__ == '__main__':
 		for _ in range(ITERATIONS):
 			root.selection(depth=0)
 
+
 		test_env = pickle.loads(root_snapshot)
 		total_reward = 0
-		for i in range(TEST_ITERATIONS):
+		for i in range(100): #TEST_ITERATIONS
 			raw_best_action = root.hoo.get_point().tolist()
 			best_action = np.array([round(a, KEY_DECIMAL) for a in raw_best_action])
 
@@ -122,7 +125,8 @@ if __name__ == '__main__':
 			
 			total_reward += reward * current_discount
 			current_discount *= discount
-			print(i, total_reward)
+			#print(i, total_reward)
+			print("current ITERATION is {}, i={}, total reward = {} ".format(ITERATIONS, i, total_reward))
 			if done:
 				file = open('ori-' + filename, 'a')
 				file.write(str(ITERATIONS) + '\t' + str(total_reward) + '\n')
@@ -138,8 +142,11 @@ if __name__ == '__main__':
 
 			root = root.children[tuple(best_action)]
 			root.depth = 0
+			currentTime = time.time()
 			for _ in range(ITERATIONS):
 				root.selection(depth=0)
+			oneIterationTime = time.time() - currentTime
+			print("One iteration takes {}".format(oneIterationTime))
 		
 		if not done:
 			print(total_reward)
